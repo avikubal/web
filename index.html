@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Avishkar Kubal | The Premium Experience</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&family=Libre+Baskerville:ital@1&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ========================================= */
+        /* BASE & VARIABLES                          */
+        /* ========================================= */
+        :root {
+            --bg: #050505; 
+            --white: #ffffff; 
+            --gold: #d4af37;
+            --glass: rgba(255, 255, 255, 0.02); 
+            --border: rgba(255, 255, 255, 0.08);
+            --ease: cubic-bezier(0.16, 1, 0.3, 1);
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+
+        * { 
+            margin: 0; padding: 0; box-sizing: border-box; 
+            font-family: 'Inter', sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body { 
+            background: var(--bg); color: var(--white); 
+            overflow-x: hidden; min-height: 100dvh; 
+            width: 100%; position: relative;
+        }
+        
+        body.locked { overflow: hidden; height: 100dvh; }
+
+        /* PERFORMANCE OPTIMIZATION */
+        .hw-accel {
+            transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            perspective: 1000px;
+        }
+
+        /* ========================================= */
+        /* CINEMATIC PRE-LOADER                      */
+        /* ========================================= */
+        #loader {
+            position: fixed; inset: 0; background: #000; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: transform 1.2s cubic-bezier(0.85, 0, 0.15, 1);
+            will-change: transform;
+        }
+        .loader-content { width: 100%; max-width: 300px; display: flex; flex-direction: column; align-items: center; }
+        .loader-text { display: flex; gap: 0.1em; color: var(--white); font-size: 0.65rem; letter-spacing: 0.5em; text-transform: uppercase; font-weight: 300; margin-bottom: 2rem; }
+        .loader-text span { display: inline-block; opacity: 0; filter: blur(10px); transform: translateY(15px); animation: kineticEntry 1s var(--ease) forwards; }
+        .loader-bar-container { width: 100%; height: 1px; background: rgba(255,255,255,0.05); position: relative; overflow: hidden; }
+        .loader-bar-fill { position: absolute; top: 0; left: 0; height: 100%; width: 0%; background: linear-gradient(90deg, transparent, var(--gold), var(--white), var(--gold), transparent); box-shadow: 0 0 15px var(--gold); transition: width 0.6s var(--ease); will-change: width; }
+        .loader-percentage { margin-top: 1rem; font-size: 0.6rem; font-family: monospace; letter-spacing: 0.2em; opacity: 0.4; }
+        @keyframes kineticEntry { to { opacity: 1; filter: blur(0px); transform: translateY(0); } }
+        #loader.hidden { transform: translateY(-100%); pointer-events: none; }
+
+        /* ========================================= */
+        /* AUDIO CONTROLLER (NEW)                    */
+        /* ========================================= */
+        .audio-toggle {
+            position: fixed;
+            bottom: calc(2rem + var(--safe-bottom));
+            right: 5%;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            color: var(--white);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 1000;
+            transition: all 0.4s var(--ease);
+            outline: none;
+            animation: subtlePulse 3s infinite;
+        }
+
+        .audio-toggle:hover {
+            transform: scale(1.1);
+            border-color: rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .audio-toggle.active {
+            border-color: var(--gold);
+            color: var(--gold);
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.15);
+            animation: none; /* Stop pulsing when audio is active */
+        }
+
+        .audio-icon {
+            width: 20px; height: 20px;
+            position: absolute;
+            transition: transform 0.5s var(--ease), opacity 0.5s var(--ease);
+        }
+
+        .audio-icon.hidden-icon {
+            opacity: 0;
+            transform: scale(0.5) rotate(-45deg);
+            pointer-events: none;
+        }
+
+        @keyframes subtlePulse {
+            0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.1); }
+            70% { box-shadow: 0 0 0 15px rgba(255,255,255,0); }
+            100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+        }
+
+        /* ========================================= */
+        /* BACKGROUND VIDEO                          */
+        /* ========================================= */
+        .v-wrap { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+        video { width: 100%; height: 100%; object-fit: cover; opacity: 0.5; filter: contrast(1.2); }
+        .v-shade { position: absolute; inset: 0; background: radial-gradient(circle, transparent 0%, #050505 100%); }
+        svg#filters { position: absolute; width: 0; height: 0; pointer-events: none; }
+
+        /* ========================================= */
+        /* NAVIGATION                                */
+        /* ========================================= */
+        nav {
+            position: fixed; top: 0; width: 100%; 
+            padding: calc(1.5rem + var(--safe-top)) 5% 1.5rem;
+            display: flex; justify-content: space-between; align-items: center; z-index: 1000;
+            background: linear-gradient(to bottom, rgba(5,5,5,0.9), transparent);
+        }
+        .logo { font-size: 0.8rem; font-weight: 900; letter-spacing: 0.4em; text-transform: uppercase; z-index: 1001; }
+        .nav-links { display: flex; gap: 2.5rem; }
+        .nav-links a { color: #fff; text-decoration: none; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.2em; opacity: 0.4; transition: 0.4s; cursor: pointer; font-weight: 700; }
+        .nav-links a.active, .nav-links a:hover { opacity: 1; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+        .burger { display: none; flex-direction: column; gap: 6px; cursor: pointer; z-index: 1001; }
+        .burger span { width: 26px; height: 1px; background: #fff; transition: 0.4s var(--ease); }
+
+        /* ========================================= */
+        /* SECTIONS                                  */
+        /* ========================================= */
+        section { 
+            min-height: 100dvh; display: none; 
+            padding: 8rem 6% calc(2rem + var(--safe-bottom)); 
+            flex-direction: column; justify-content: center; align-items: center;
+            width: 100%; position: relative;
+        }
+        section.active { display: flex; animation: sectionReveal 1.2s var(--ease); }
+        @keyframes sectionReveal { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .cinematic-heading {
+            font-family: 'Libre Baskerville', serif; font-style: italic;
+            font-size: clamp(2.5rem, 11vw, 7.5rem); line-height: 1.05; text-align: center;
+            color: rgba(255,255,255,0.8);
+            filter: url(#ultra-smooth-blur) drop-shadow(0 15px 30px rgba(0,0,0,0.6));
+            will-change: filter, transform;
+        }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; width: 100%; max-width: 1100px; }
+        
+        .glass-card {
+            background: var(--glass); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--border); padding: 3rem; border-radius: 2px;
+            transition: transform 0.4s var(--ease), border-color 0.4s; width: 100%; contain: content; 
+        }
+        
+        .interactive-card { cursor: pointer; }
+        .interactive-card:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.2); }
+
+        .card-title { color: var(--gold); font-size: 0.65rem; letter-spacing: 0.3em; margin-bottom: 1rem; text-transform: uppercase; }
+        .card-desc { font-size: 0.9rem; opacity: 0.6; line-height: 1.8; font-weight: 300; }
+
+        .cta {
+            margin-top: 2.5rem; padding: 1.2rem 2.5rem; background: transparent; 
+            border: 1px solid var(--border); color: #fff; 
+            text-transform: uppercase; letter-spacing: 0.3em; font-size: 0.65rem; 
+            cursor: pointer; transition: 0.4s; outline: none; display: inline-block;
+        }
+        .cta:hover { background: #fff; color: #000; border-color: #fff; }
+
+        /* ========================================= */
+        /* MODAL SYSTEM                              */
+        /* ========================================= */
+        .modal { position: fixed; inset: 0; z-index: 2000; display: none; align-items: center; justify-content: center; padding: 1.5rem; }
+        .modal.active { display: flex; }
+        .modal-bg { position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); opacity: 0; transition: opacity 0.4s; will-change: opacity; }
+        .modal.active .modal-bg { opacity: 1; }
+        .modal-body { 
+            position: relative; background: var(--bg); border: 1px solid var(--border); 
+            padding: 3rem 2rem; width: 100%; max-width: 650px; border-radius: 4px;
+            transform: translateY(30px); opacity: 0; transition: all 0.5s var(--ease);
+            max-height: 85dvh; overflow-y: auto; will-change: transform, opacity;
+        }
+        .modal.active .modal-body { transform: translateY(0); opacity: 1; }
+
+        /* ========================================= */
+        /* MOBILE                                    */
+        /* ========================================= */
+        @media (max-width: 768px) {
+            nav { padding: calc(1rem + var(--safe-top)) 6% 1rem; background: transparent; }
+            .burger { display: flex; }
+            .nav-links {
+                position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
+                background: rgba(5,5,5,0.98); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+                flex-direction: column; justify-content: center; align-items: center;
+                gap: 2.5rem; z-index: 1000; opacity: 0; visibility: hidden;
+                transform: translateY(-10px); transition: all 0.4s var(--ease);
+                will-change: transform, opacity;
+            }
+            .nav-links.open { opacity: 1; visibility: visible; transform: translateY(0); }
+            .nav-links a { font-size: 1.2rem; letter-spacing: 0.3em; }
+            .burger.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+            .burger.active span:nth-child(2) { opacity: 0; }
+            .burger.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+            section { padding-top: 6rem; }
+            .glass-card { padding: 2rem 1.5rem; }
+            .cinematic-heading { font-size: 2.8rem; }
+            
+            /* Shift audio toggle slightly on mobile to avoid UI overlaps */
+            .audio-toggle { right: 6%; bottom: calc(1.5rem + var(--safe-bottom)); width: 44px; height: 44px; }
+        }
+    </style>
+</head>
+<body class="locked">
+
+    <div id="loader" class="hw-accel">
+        <div class="loader-content">
+            <div class="loader-text" id="loader-text"></div>
+            <div class="loader-bar-container">
+                <div class="loader-bar-fill" id="loader-bar"></div>
+            </div>
+            <div class="loader-percentage" id="loader-pct">00%</div>
+        </div>
+    </div>
+
+    <!-- AUDIO TOGGLE BUTTON -->
+    <button id="audio-toggle" class="audio-toggle hw-accel" aria-label="Toggle Background Audio">
+        <!-- Muted Icon -->
+        <svg id="icon-muted" class="audio-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+        </svg>
+        <!-- Unmuted Icon (Hidden by default) -->
+        <svg id="icon-unmuted" class="audio-icon hidden-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+        </svg>
+    </button>
+
+    <svg id="filters">
+        <filter id="ultra-smooth-blur" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
+            <feComposite in="blur" in2="SourceGraphic" operator="in" />
+        </filter>
+    </svg>
+
+    <div class="v-wrap hw-accel">
+        <div class="v-shade"></div>
+        <video id="bg-video" autoplay loop muted playsinline>
+            <source src="My Movie-720p60.mov" type="video/mp4">
+        </video>
+    </div>
+
+    <nav class="hw-accel">
+        <div class="logo">Avishkar</div>
+        <div class="burger" id="burger">
+            <span></span><span></span><span></span>
+        </div>
+        <div class="nav-links" id="nav-links">
+            <a data-target="home" class="active">Collection</a>
+            <a data-target="blog">Editorial</a>
+            <a data-target="downloads">Objects</a>
+        </div>
+    </nav>
+
+    <section id="home" class="active hw-accel">
+        <h1 class="cinematic-heading">Experience the Exceptional</h1>
+        <p style="margin-top:2rem; opacity:0.5; font-size:0.8rem; letter-spacing:0.1em; text-align:center; max-width:500px;">
+            A radically precise environment designed for digital architects.
+        </p>
+        <button class="cta" onclick="goto('blog')">Explore Editorial</button>
+    </section>
+
+    <section id="blog" class="hw-accel">
+        <div class="grid">
+            <div class="glass-card interactive-card" onclick="showModal('THE GLASS ERA', 'Refraction is the new language of depth. By isolating blur to the typography using SVG filters, we create an optical lens that invites the user to see the background through the interface itself. It is not just an overlay; it is digital physics.')">
+                <h3 class="card-title">I. REFRACTION</h3>
+                <p class="card-desc">The science of light and digital glass. Tap to read the manifesto.</p>
+            </div>
+            <div class="glass-card interactive-card" onclick="showModal('NATURAL MOTION', 'Physics-based easing curves are the bridge between cold code and human touch. Every transition here mimics the weight and momentum of physical objects, creating a rhythmic and tactile user journey.')">
+                <h3 class="card-title">II. DYNAMICS</h3>
+                <p class="card-desc">The rhythm of human-centric interaction. Tap to uncover the motion design.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="downloads" class="hw-accel">
+        <div class="grid" style="max-width: 900px;">
+            <div class="glass-card" style="text-align:center;">
+                <h3 class="card-title">WORKSTATION V.1</h3>
+                <p class="card-desc">Curated interface assets for macOS & Windows environments.</p>
+                <button class="cta" style="width:100%;" onclick="downloadFile('Workstation_Asset.txt', 'Premium Desktop Environment Data Loaded.')">Acquire</button>
+            </div>
+            <div class="glass-card" style="text-align:center;">
+                <h3 class="card-title">MOBILE CORE V.1</h3>
+                <p class="card-desc">Optimized refraction modules for handheld devices.</p>
+                <button class="cta" style="width:100%;" onclick="downloadFile('Mobile_Core_Asset.txt', 'Premium Mobile Core Data Loaded.')">Acquire</button>
+            </div>
+        </div>
+    </section>
+
+    <div class="modal hw-accel" id="modal">
+        <div class="modal-bg" onclick="hideModal()"></div>
+        <div class="modal-body">
+            <h3 id="m-title" style="color:var(--gold); margin-bottom:1.5rem; font-size:0.8rem; letter-spacing:0.3em;"></h3>
+            <p id="m-text" style="line-height:2; opacity:0.8; font-weight:300; font-size:0.95rem;"></p>
+            <button class="cta" onclick="hideModal()" style="width:100%;">Close Reader</button>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('bg-video');
+        
+        // --- AUDIO CONTROLLER LOGIC ---
+        const audioBtn = document.getElementById('audio-toggle');
+        const iconMuted = document.getElementById('icon-muted');
+        const iconUnmuted = document.getElementById('icon-unmuted');
+
+        audioBtn.addEventListener('click', () => {
+            video.muted = !video.muted;
+            if (video.muted) {
+                audioBtn.classList.remove('active');
+                iconMuted.classList.remove('hidden-icon');
+                iconUnmuted.classList.add('hidden-icon');
+            } else {
+                audioBtn.classList.add('active');
+                iconMuted.classList.add('hidden-icon');
+                iconUnmuted.classList.remove('hidden-icon');
+            }
+        });
+
+        // --- PRE-LOADER ---
+        const brandStr = "Made By: Avishkar Kubal";
+        const loaderText = document.getElementById('loader-text');
+        const loaderBar = document.getElementById('loader-bar');
+        const loaderPct = document.getElementById('loader-pct');
+        
+        brandStr.split("").forEach((char, i) => {
+            const span = document.createElement('span');
+            span.innerText = char === " " ? "\u00A0" : char;
+            span.style.animationDelay = `${i * 0.04}s`;
+            loaderText.appendChild(span);
+        });
+
+        let currentProgress = 0;
+        const loader = document.getElementById('loader');
+
+        const updateProgress = (val) => {
+            currentProgress = val;
+            loaderBar.style.width = `${val}%`;
+            loaderPct.innerText = `${Math.floor(val).toString().padStart(2, '0')}%`;
+        };
+
+        const fastLoad = setInterval(() => {
+            if (currentProgress < 75) updateProgress(currentProgress + Math.random() * 3);
+            else clearInterval(fastLoad);
+        }, 60);
+
+        const endLoader = () => {
+            clearInterval(fastLoad);
+            updateProgress(100);
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                document.body.classList.remove('locked');
+            }, 800);
+        };
+
+        if (video.readyState >= 3) {
+            endLoader();
+        } else {
+            video.addEventListener('canplaythrough', endLoader);
+            setTimeout(endLoader, 5000); 
+        }
+
+        // --- NAVIGATION ---
+        const burger = document.getElementById('burger');
+        const navLinksMenu = document.getElementById('nav-links');
+        const allLinks = document.querySelectorAll('.nav-links a');
+        const allSections = document.querySelectorAll('section');
+
+        burger.onclick = () => {
+            burger.classList.toggle('active');
+            navLinksMenu.classList.toggle('open');
+            document.body.classList.toggle('locked');
+            
+            if(navLinksMenu.classList.contains('open')) video.pause();
+            else video.play();
+        };
+
+        function goto(targetId) {
+            allSections.forEach(s => s.classList.remove('active'));
+            allLinks.forEach(a => a.classList.remove('active'));
+            
+            const targetSection = document.getElementById(targetId);
+            targetSection.classList.add('active');
+            document.querySelector(`[data-target="${targetId}"]`).classList.add('active');
+            
+            if(targetId === 'home') {
+                const heading = targetSection.querySelector('.cinematic-heading');
+                heading.style.animation = 'none';
+                heading.offsetHeight; 
+                heading.style.animation = null;
+            }
+
+            if(navLinksMenu.classList.contains('open')) {
+                burger.classList.remove('active');
+                navLinksMenu.classList.remove('open');
+                document.body.classList.remove('locked');
+                video.play();
+            }
+
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+        allLinks.forEach(link => {
+            link.onclick = (e) => {
+                e.preventDefault();
+                goto(link.getAttribute('data-target'));
+            };
+        });
+
+        // --- MODAL SYSTEM ---
+        function showModal(title, text) {
+            document.getElementById('m-title').innerText = title;
+            document.getElementById('m-text').innerText = text;
+            document.getElementById('modal').classList.add('active');
+            document.body.classList.add('locked');
+            video.pause();
+        }
+
+        function hideModal() {
+            document.getElementById('modal').classList.remove('active');
+            document.body.classList.remove('locked');
+            video.play();
+        }
+
+        // --- DOWNLOAD ---
+        function downloadFile(filename, content) {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; 
+            a.download = filename; 
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
